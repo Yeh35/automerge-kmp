@@ -1,44 +1,35 @@
-import com.android.build.api.dsl.androidLibrary
+import gobley.gradle.GobleyHost
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
-    alias(libs.plugins.android.kotlin.multiplatform.library)
+    alias(libs.plugins.android.library)
+    alias(libs.plugins.kotlin.atomicfu)
+    alias(libs.plugins.gobley.cargo)
+    alias(libs.plugins.gobley.uniffi)
     alias(libs.plugins.vanniktech.mavenPublish)
 }
 
-group = "io.github.kotlin"
-version = "1.0.0"
+group = "io.github.aspect"
+version = "0.1.0"
 
 kotlin {
-    jvm()
-    androidLibrary {
-        namespace = "org.jetbrains.kotlinx.multiplatform.library.template"
-        compileSdk = libs.versions.android.compileSdk.get().toInt()
-        minSdk = libs.versions.android.minSdk.get().toInt()
-
-        withJava() // enable java compilation support
-        withHostTestBuilder {}.configure {}
-        withDeviceTestBuilder {
-            sourceSetTreeName = "test"
-        }
-
-        compilations.configureEach {
-            compilerOptions.configure {
-                jvmTarget.set(
-                    JvmTarget.JVM_11
-                )
+    androidTarget {
+        compilations.all {
+            compileTaskProvider.configure {
+                compilerOptions {
+                    jvmTarget.set(JvmTarget.JVM_11)
+                }
             }
         }
     }
+    jvm()
     iosX64()
     iosArm64()
     iosSimulatorArm64()
-    linuxX64()
 
     sourceSets {
         commonMain.dependencies {
-            //put your multiplatform dependencies here
         }
 
         commonTest.dependencies {
@@ -47,36 +38,74 @@ kotlin {
     }
 }
 
+android {
+    namespace = "automerge.kmp"
+    compileSdk = libs.versions.android.compileSdk.get().toInt()
+    defaultConfig {
+        minSdk = libs.versions.android.minSdk.get().toInt()
+    }
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
+    }
+}
+
+cargo {
+    packageDirectory = layout.projectDirectory.dir("rust")
+}
+
+// Disable JVM cross-compilation for non-host targets (Linux on macOS, etc.)
+val hostSuffix = when {
+    GobleyHost.current.toString().contains("MacOS") && GobleyHost.current.toString().contains("Arm64") -> "MacOSArm64"
+    GobleyHost.current.toString().contains("MacOS") && GobleyHost.current.toString().contains("X64") -> "MacOSX64"
+    GobleyHost.current.toString().contains("Linux") && GobleyHost.current.toString().contains("Arm64") -> "LinuxArm64"
+    GobleyHost.current.toString().contains("Linux") && GobleyHost.current.toString().contains("X64") -> "LinuxX64"
+    else -> ""
+}
+
+afterEvaluate {
+    val jvmPlatforms = listOf("Linux", "MacOS", "Windows", "MinGW")
+    tasks.configureEach {
+        val taskName = name
+        val isJvmCrossTask = jvmPlatforms.any { taskName.contains(it) }
+        val isHostTask = hostSuffix.isNotEmpty() && taskName.contains(hostSuffix)
+        if (isJvmCrossTask && !isHostTask) {
+            enabled = false
+        }
+    }
+}
+
+uniffi {
+    generateFromLibrary {
+        namespace = "automerge_kmp"
+        packageName = "automerge.kmp"
+    }
+}
+
 mavenPublishing {
     publishToMavenCentral()
-
     signAllPublications()
-
-    coordinates(group.toString(), "library", version.toString())
+    coordinates(group.toString(), "automerge-kmp", version.toString())
 
     pom {
-        name = "My library"
-        description = "A library."
-        inceptionYear = "2024"
-        url = "https://github.com/kotlin/multiplatform-library-template/"
+        name = "automerge-kmp"
+        description = "Kotlin Multiplatform wrapper for Automerge CRDT via Rust + UniFFI"
+        inceptionYear = "2026"
+        url = "https://github.com/aspect/automerge-kmp"
         licenses {
             license {
-                name = "XXX"
-                url = "YYY"
-                distribution = "ZZZ"
+                name = "MIT"
+                url = "https://opensource.org/licenses/MIT"
             }
         }
         developers {
             developer {
-                id = "XXX"
-                name = "YYY"
-                url = "ZZZ"
+                id = "aspect"
+                name = "aspect"
             }
         }
         scm {
-            url = "XXX"
-            connection = "YYY"
-            developerConnection = "ZZZ"
+            url = "https://github.com/aspect/automerge-kmp"
         }
     }
 }

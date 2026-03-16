@@ -1,0 +1,12 @@
+[package]
+name = "automerge-kmp"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+uniffi = "0.29.4"
+automerge = "0.5"
+thiserror = "1"
+
+[lib]
+crate-type = ["cdylib", "staticlib"]
