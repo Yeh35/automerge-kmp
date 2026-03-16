@@ -13,3 +13,5 @@ xcuserdata
 *.gpg
 #Rust build artifacts
 **/target/
+#Claude Code internal data
+claude-501/
