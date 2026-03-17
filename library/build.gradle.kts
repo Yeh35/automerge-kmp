@@ -10,8 +10,8 @@ plugins {
     alias(libs.plugins.vanniktech.mavenPublish)
 }
 
-group = "io.github.aspect"
-version = "0.1.0"
+group = "com.yeh35"
+version = "0.1.1"
 
 kotlin {
     androidTarget {

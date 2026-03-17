@@ -17,7 +17,7 @@ Build collaborative, offline-first applications with automatic conflict resoluti
 ```kotlin
 // build.gradle.kts
 dependencies {
-    implementation("io.github.aspect:automerge-kmp:0.1.0")
+    implementation("com.yeh35:automerge-kmp:0.1.0")
 }
 ```
 
